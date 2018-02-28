@@ -64,12 +64,13 @@ func main() {
 		Token:  botToken,
 		Poller: &tb.LongPoller{Timeout: 10 * time.Second},
 	})
-	log.Printf("%s (@%v) started doing it's job.", b.Me.FirstName, b.Me.Username)
-	log.Printf("Messages will be sent every day after %d:00 AM.", submitHour)
 
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	log.Printf("%s (@%v) started doing it's job.", b.Me.FirstName, b.Me.Username)
+	log.Printf("Messages will be sent every day after %d:00 AM.", submitHour)
 
 	b.Handle("/ping", func(m *tb.Message) {
 		b.Send(m.Sender, "♥️")
