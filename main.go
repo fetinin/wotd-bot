@@ -1,43 +1,53 @@
 package main
 
 import (
-	"time"
 	"log"
+	"time"
 
-	tb "gopkg.in/tucnak/telebot.v2"
-	"github.com/art-vasilyev/wotd"
 	"fmt"
+	"github.com/art-vasilyev/wotd"
+	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
+	"strconv"
 )
 
 type channel struct {
 	id string
 }
 
-func (c channel) Recipient () string {
+func (c channel) Recipient() string {
 	return c.id
 }
 
 var notificationInterval = 10 * time.Minute
-var submitHour = 9
+var retryInterval = 5 * time.Minute
+var submitHour = convertToInt(os.Getenv("submitTime"))
 var notificationChannel = channel{id: os.Getenv("channelID")}
 var botToken = os.Getenv("botToken")
 
+
+func convertToInt(string string) int {
+	hour, err := strconv.ParseInt(string, 10, 32)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return int(hour)
+}
 
 func notifySubscribers(b *tb.Bot) (err error) {
 	log.Println("Notifying subscribers...")
 	msg, err := getMessageOfTheDay()
 	if err != nil {
-		return
+		return err
 	}
 	_, err = b.Send(notificationChannel, msg)
 	if err != nil {
-		return
+		return err
 	}
-	return
+	return err
 }
 
-func getMessageOfTheDay() (string, error){
+func getMessageOfTheDay() (string, error) {
 	word, err := wotd.GetWOTD()
 	return fmt.Sprintln(word), err
 }
@@ -50,6 +60,8 @@ func runDailyNotification(bot *tb.Bot) {
 				err := notifySubscribers(bot)
 				if err != nil {
 					log.Println(err)
+					log.Println("Will retry after", retryInterval)
+					time.Sleep(retryInterval)
 					continue // try again
 				}
 				lastSubmitDay = time.Now().Day()
@@ -77,7 +89,7 @@ func main() {
 	})
 
 	b.Handle("/start", func(m *tb.Message) {
-		b.Send(m.Sender, "Hello, " + m.Sender.FirstName +"!")
+		b.Send(m.Sender, "Hello, "+m.Sender.FirstName+"!")
 	})
 
 	go runDailyNotification(b)
