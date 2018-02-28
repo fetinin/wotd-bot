@@ -1,0 +1,9 @@
+builds:
+  - main: ./cmd/wotd/main.go
+    binary: wotd
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
