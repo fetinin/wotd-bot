@@ -36,3 +36,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[metadata.heroku]
+    root-package = "github.com/What-If-I/wotd-bot"
+    go-version = "1.10"
