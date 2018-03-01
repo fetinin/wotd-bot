@@ -15,16 +15,25 @@ type channel struct {
 	id string
 }
 
+// Implements telebot.v2.Recipient interface.
 func (c channel) Recipient() string {
 	return c.id
 }
 
-var notificationInterval = 10 * time.Minute
-var retryInterval = 5 * time.Minute
+// Interval that specifies how often we should check if it's time
+// to send new word.
+const notificationInterval = 15 * time.Minute
+// If anythings fails, wait for this amount before retry.
+const retryInterval = 5 * time.Minute
+
+// Hour after which message should be sent.
 var submitHour = convertToInt(os.Getenv("submitTime"))
+// Telegram channel ID.
 var notificationChannel = channel{id: os.Getenv("channelID")}
+// Telegram bot token.
 var botToken = os.Getenv("botToken")
 
+// Convert string to integer
 func convertToInt(string string) int {
 	hour, err := strconv.ParseInt(string, 10, 32)
 	if err != nil {
@@ -33,6 +42,7 @@ func convertToInt(string string) int {
 	return int(hour)
 }
 
+// Notify channel subscribers about new word of the day.
 func notifySubscribers(b *tb.Bot) (err error) {
 	log.Println("Notifying subscribers...")
 	msg, err := getMessageOfTheDay()
@@ -46,16 +56,18 @@ func notifySubscribers(b *tb.Bot) (err error) {
 	return err
 }
 
+// Get a new word of the day.
 func getMessageOfTheDay() (string, error) {
 	word, err := wotd.GetWOTD()
 	return fmt.Sprintln(word), err
 }
 
+// Runs infinitely and notifies users on daily basis.
 func runDailyNotification(bot *tb.Bot) {
-	lastSubmitDay := 0
+	var lastSubmitDay int
 	for {
 		currentTime := time.Now()
-		if lastSubmitDay < currentTime.Day() && currentTime.Hour() >= submitHour {
+		if lastSubmitDay != currentTime.YearDay() && currentTime.Hour() >= submitHour {
 			err := notifySubscribers(bot)
 			if err != nil {
 				log.Println(err)
