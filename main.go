@@ -25,7 +25,6 @@ var submitHour = convertToInt(os.Getenv("submitTime"))
 var notificationChannel = channel{id: os.Getenv("channelID")}
 var botToken = os.Getenv("botToken")
 
-
 func convertToInt(string string) int {
 	hour, err := strconv.ParseInt(string, 10, 32)
 	if err != nil {
@@ -55,17 +54,16 @@ func getMessageOfTheDay() (string, error) {
 func runDailyNotification(bot *tb.Bot) {
 	lastSubmitDay := 0
 	for {
-		if lastSubmitDay < time.Now().Day() {
-			if time.Now().Hour() >= submitHour {
-				err := notifySubscribers(bot)
-				if err != nil {
-					log.Println(err)
-					log.Println("Will retry after", retryInterval)
-					time.Sleep(retryInterval)
-					continue // try again
-				}
-				lastSubmitDay = time.Now().Day()
+		currentTime := time.Now()
+		if lastSubmitDay < currentTime.Day() && currentTime.Hour() >= submitHour {
+			err := notifySubscribers(bot)
+			if err != nil {
+				log.Println(err)
+				log.Println("Will retry after", retryInterval)
+				time.Sleep(retryInterval)
+				continue // try again
 			}
+			lastSubmitDay = time.Now().Day()
 		}
 		time.Sleep(notificationInterval)
 	}
@@ -86,6 +84,10 @@ func main() {
 
 	b.Handle("/ping", func(m *tb.Message) {
 		b.Send(m.Sender, "♥️")
+	})
+
+	b.Handle("/time", func(m *tb.Message) {
+		b.Send(m.Sender, time.Now())
 	})
 
 	b.Handle("/start", func(m *tb.Message) {
