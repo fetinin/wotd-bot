@@ -87,7 +87,7 @@ func main() {
 	})
 
 	b.Handle("/time", func(m *tb.Message) {
-		b.Send(m.Sender, time.Now())
+		b.Send(m.Sender, time.Now().Format("Mon Jan 2 15:04:05"))
 	})
 
 	b.Handle("/start", func(m *tb.Message) {
