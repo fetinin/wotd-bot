@@ -22,7 +22,7 @@ func (c channel) Recipient() string {
 
 // Interval that specifies how often we should check if it's time
 // to send new word.
-const notificationInterval = 15 * time.Minute
+const notificationCheckInterval = 15 * time.Minute
 // If anythings fails, wait for this amount before retry.
 const retryInterval = 5 * time.Minute
 
@@ -75,9 +75,9 @@ func runDailyNotification(bot *tb.Bot) {
 				time.Sleep(retryInterval)
 				continue // try again
 			}
-			lastSubmitDay = time.Now().Day()
+			lastSubmitDay = time.Now().YearDay()
 		}
-		time.Sleep(notificationInterval)
+		time.Sleep(notificationCheckInterval)
 	}
 }
 
