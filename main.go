@@ -5,11 +5,15 @@ import (
 	"time"
 
 	"fmt"
-	"github.com/art-vasilyev/wotd"
-	tb "gopkg.in/tucnak/telebot.v2"
 	"os"
 	"strconv"
+
+	"github.com/art-vasilyev/wotd"
+	tb "gopkg.in/tucnak/telebot.v2"
 )
+
+// If anythings fails, wait for this amount before retry.
+const retryInterval = 5 * time.Minute
 
 type channel struct {
 	id string
@@ -20,18 +24,14 @@ func (c channel) Recipient() string {
 	return c.id
 }
 
-// Interval that specifies how often we should check if it's time
-// to send new word.
-const notificationCheckInterval = 15 * time.Minute
-// If anythings fails, wait for this amount before retry.
-const retryInterval = 5 * time.Minute
-
-// Hour after which message should be sent.
-var submitHour = convertToInt(os.Getenv("submitTime"))
-// Telegram channel ID.
-var notificationChannel = channel{id: os.Getenv("channelID")}
-// Telegram bot token.
-var botToken = os.Getenv("botToken")
+var (
+	// Hour after which message should be sent.
+	submitHour = convertToInt(os.Getenv("submitTime"))
+	// Telegram channel ID.
+	notificationChannel = channel{id: os.Getenv("channelID")}
+	// Telegram bot token.
+	botToken = os.Getenv("botToken")
+)
 
 // Convert string to integer
 func convertToInt(string string) int {
@@ -62,22 +62,29 @@ func getMessageOfTheDay() (string, error) {
 	return fmt.Sprintln(word), err
 }
 
+func findSecondsUntil(future time.Time) time.Duration {
+	return time.Duration(future.Sub(time.Now()).Seconds()) * time.Second
+}
+
 // Runs infinitely and notifies users on daily basis.
 func runDailyNotification(bot *tb.Bot) {
-	var lastSubmitDay int
 	for {
-		currentTime := time.Now()
-		if lastSubmitDay != currentTime.YearDay() && currentTime.Hour() >= submitHour {
-			err := notifySubscribers(bot)
-			if err != nil {
-				log.Println(err)
-				log.Println("Will retry after", retryInterval)
-				time.Sleep(retryInterval)
-				continue // try again
-			}
-			lastSubmitDay = time.Now().YearDay()
+		err := notifySubscribers(bot)
+		if err != nil {
+			log.Println(err)
+			log.Println("Will retry after", retryInterval)
+			time.Sleep(retryInterval)
+			continue // try again
 		}
-		time.Sleep(notificationCheckInterval)
+
+		now := time.Now()
+		nextTick := time.Date(
+			now.Year(), now.Month(), now.Day()+1, submitHour,
+			0, 0, 0, now.Location())
+		secondsTillNextTick := findSecondsUntil(nextTick)
+
+		log.Printf("Sleeping for %v.", secondsTillNextTick)
+		time.Sleep(secondsTillNextTick)
 	}
 }
 
